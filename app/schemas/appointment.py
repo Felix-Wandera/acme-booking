@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import Optional
 import uuid
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
+from app.core.time_utils import CLINIC_TZ
 from app.models.appointment import AppointmentStatus
 
 
@@ -46,3 +47,12 @@ class AppointmentResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("start_time")
+    def serialize_start_time(self, dt: datetime, _info) -> str:
+        """Always serialize appointment start_time with the clinic's local timezone offset."""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=CLINIC_TZ)
+        else:
+            dt = dt.astimezone(CLINIC_TZ)
+        return dt.isoformat()

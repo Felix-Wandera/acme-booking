@@ -18,6 +18,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgrespassword
           POSTGRES_DB: acme_booking_test
+          TZ: Africa/Nairobi
         ports:
           - 5432:5432
         options: >-

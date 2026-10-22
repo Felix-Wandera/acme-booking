@@ -6,6 +6,7 @@
 **Production deployment stack:** Docker, Coolify (VPS), GitHub Actions  
 **Public Deployment URL:** `https://clinic-booking.wandera.online`  
 **Interactive API Docs:** `https://clinic-booking.wandera.online/docs`
+**ReDoc Documentation:** `https://clinic-booking.wandera.online/redoc`
 
 ## 1. Overview 
 
@@ -449,6 +450,7 @@ The automated workflow is defined in `.github/workflows/ci.yml`:
 ### Live Application URL
 - **Public Base URL:** [https://clinic-booking.wandera.online](https://clinic-booking.wandera.online)
 - **API V1 Base Path:** [https://clinic-booking.wandera.online/api/v1](https://clinic-booking.wandera.online/api/v1)
-- **Interactive OpenAPI Docs:** [https://clinic-booking.wandera.online/docs](https://clinic-booking.wandera.online/docs)
-- **Health Check Endpoint:** [https://clinic-booking.wandera.online/health](https://clinic-booking.wandera.online/health)
+- **Interactive Swagger / OpenAPI Docs:** [https://clinic-booking.wandera.online/docs](https://clinic-booking.wandera.online/docs)
+- **ReDoc Documentation:** [https://clinic-booking.wandera.online/redoc](https://clinic-booking.wandera.online/redoc)
+- **Health Check Endpoint:** [https://clinic-booking.wandera.online/health](https://clinic-booking.wandera.online/health) 
 

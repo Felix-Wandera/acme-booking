@@ -162,7 +162,7 @@ def test_reschedule_conflict_on_taken_slot(client, db, sample_doctor, sample_pat
     # Check that appt1 remains untouched at 10:00 in DB
     db.expire_all()
     record = db.get(Appointment, uuid.UUID(appt1["id"]))
-    assert record.start_time.strftime("%H:%M") == "10:00"
+    assert record.start_time.astimezone(CLINIC_TZ).strftime("%H:%M") == "10:00"
 
 
 def test_reschedule_cancelled_appointment_returns_conflict(client, sample_doctor, sample_patient, freeze_clock):

@@ -8,6 +8,7 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+    connect_args={"options": f"-c timezone={settings.TIMEZONE}"},
 )
 
 SessionLocal = sessionmaker(
