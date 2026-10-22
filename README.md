@@ -1,11 +1,16 @@
 # Clinic Appointment Booking API — System Design
 
+[![CI/CD Pipeline](https://github.com/Felix-Wandera/acme-booking/actions/workflows/ci.yml/badge.svg)](https://github.com/Felix-Wandera/acme-booking/actions/workflows/ci.yml)
+
 **Facility Name:** Acme Hospital Clinic 
 **Status:** MVP Implementation  
 **Proposed stack:** FastAPI, PostgreSQL, SQLAlchemy 2.x, Alembic, pytest, GitHub Actions, Railway  
 **Production deployment stack:** Docker, Coolify (VPS), GitHub Actions  
+
 **Public Deployment URL:** `https://clinic-booking.wandera.online`  
+
 **Interactive API Docs:** `https://clinic-booking.wandera.online/docs`
+
 **ReDoc Documentation:** `https://clinic-booking.wandera.online/redoc`
 
 ## 1. Overview 
