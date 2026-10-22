@@ -1,8 +1,11 @@
 # Clinic Appointment Booking API — System Design
 
 **Facility Name:** Acme Hospital Clinic 
-**Status:** MVP design  
-**Proposed stack:** FastAPI, PostgreSQL, SQLAlchemy 2.x, Alembic, pytest, GitHub Actions, Railway
+**Status:** MVP Implementation  
+**Proposed stack:** FastAPI, PostgreSQL, SQLAlchemy 2.x, Alembic, pytest, GitHub Actions, Railway  
+**Production deployment stack:** Docker, Coolify (VPS), GitHub Actions  
+**Public Deployment URL:** `https://clinic-booking.wandera.online`  
+**Interactive API Docs:** `https://clinic-booking.wandera.online/docs`
 
 ## 1. Overview 
 
@@ -209,9 +212,24 @@ For this MVP, rescheduling changes the time but keeps the same doctor. Moving an
 
 ## 7. REST API
 
-All request and response bodies use JSON. Datetimes use ISO 8601, including a timezone offset. Response examples below omit fields that are not relevant to the example.
+All core resource endpoints are versioned and mounted under the **`settings.API_V1_STR`** prefix (default: **`/api/v1`**). System health checks and interactive documentation reside at the root level (`/health`, `/docs`, `/redoc`).
 
-### `POST /appointments`
+- **API Base Prefix:** `/api/v1` (`settings.API_V1_STR`)
+- **Request & Response Format:** JSON (`application/json`)
+- **Datetime Representation:** ISO 8601 with explicit timezone offset (e.g., `2026-10-23T10:00:00+03:00`)
+- **Reference Timezone:** `Africa/Nairobi` (EAT, UTC+03:00)
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v1/doctors/{doctor_id}/availability` | `GET` | Retrieve available 30-min slots for a given date |
+| `/api/v1/appointments` | `POST` | Book a new 30-min appointment slot |
+| `/api/v1/appointments/{id}/cancel` | `PATCH` | Cancel an active appointment with reason |
+| `/api/v1/appointments/{id}/reschedule` | `PATCH` | Atomically reschedule appointment to a new slot |
+| `/api/v1/patients/{patient_id}/appointments` | `GET` | List upcoming appointments for a patient (paginated) |
+| `/health` | `GET` | Application and database connectivity health check |
+| `/docs` | `GET` | Interactive Swagger OpenAPI documentation |
+
+### `POST /api/v1/appointments`
 
 Books a 30-minute slot.
 
@@ -233,7 +251,7 @@ Books a 30-minute slot.
 - `409 Conflict` — doctor is inactive or the slot is already booked.
 - `422 Unprocessable Entity` — malformed input, invalid slot alignment, past/too-soon time, outside working hours, or overlap with blocked time.
 
-### `GET /doctors/{doctor_id}/availability?date=YYYY-MM-DD`
+### `GET /api/v1/doctors/{doctor_id}/availability?date=YYYY-MM-DD`
 
 Returns available 30-minute start times for the requested calendar date in `Africa/Nairobi`.
 
@@ -256,7 +274,7 @@ The service generates candidate times from that weekday's working intervals, the
 
 **Possible errors:** `404 Not Found` if the doctor does not exist; `422 Unprocessable Entity` if the date is invalid.
 
-### `PATCH /appointments/{appointment_id}/cancel`
+### `PATCH /api/v1/appointments/{appointment_id}/cancel`
 
 Cancels an active appointment and frees its slot.
 
@@ -274,7 +292,7 @@ Cancels an active appointment and frees its slot.
 
 A repeated cancellation is deliberately reported as a conflict because the assessment requires an error when an appointment has already been cancelled. The response behaviour is documented rather than described as idempotent.
 
-### `PATCH /appointments/{appointment_id}/reschedule`
+### `PATCH /api/v1/appointments/{appointment_id}/reschedule`
 
 Moves an active appointment to a different slot for the same doctor.
 
@@ -290,7 +308,7 @@ Moves an active appointment to a different slot for the same doctor.
 
 **Possible errors:** `404 Not Found` if the appointment does not exist; `409 Conflict` if the new slot is taken or the appointment is cancelled; `422 Unprocessable Entity` if the target time violates scheduling rules. A failed reschedule must leave the original appointment unchanged.
 
-### `GET /patients/{patient_id}/appointments?limit=10&offset=0`
+### `GET /api/v1/patients/{patient_id}/appointments?limit=10&offset=0`
 
 Bonus endpoint returning upcoming appointments for a patient, sorted by `start_time` ascending. The default page size is 10; `limit` is constrained to a reasonable range (for example, 1–100) and `offset` must be non-negative.
 
@@ -343,4 +361,94 @@ Use a controllable clock or inject the current time into service-level functions
 - **Single operating timezone:** keeps the MVP straightforward. If the product expands to clinics in different regions, store a timezone per clinic or doctor and generate local operating dates accordingly.
 - **No authentication in the assessment MVP:** avoids adding requirements not present in the prompt, but means the public demo must use synthetic data. A production version would require authentication, authorization, audit logging, rate limiting, and careful handling of health-related personal data.
 - **Fixed duration:** simplifies overlap checks. Variable appointment types and durations would require interval-based conflict enforcement and likely a richer scheduling model.
+
+## 10. Local development and testing
+
+### Prerequisites
+- Python 3.13+
+- PostgreSQL 16+ running locally or in Docker
+
+### Setup Instructions
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Felix-Wandera/acme-booking.git
+   cd acme-booking
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```powershell
+   # Windows (PowerShell)
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+
+   # Linux / macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables:**
+   Copy `.env.example` to `.env` and set your PostgreSQL credentials:
+   ```env
+   PROJECT_NAME="Acme Hospital Clinic Booking System"
+   DATABASE_URL="postgresql+psycopg://postgres:<password>@localhost:5432/acme_booking"
+   TIMEZONE="Africa/Nairobi"
+   ```
+
+5. **Run database migrations:**
+   ```bash
+   alembic upgrade head
+   ```
+
+6. **Seed baseline clinic data (5 doctors, schedules, patients):**
+   ```bash
+   python seed.py
+   ```
+   *(The seed script is strictly idempotent; use `python seed.py --reset` to clear and reset).*
+
+7. **Run the automated test suite:**
+   ```bash
+   pytest -v
+   ```
+
+8. **Start the local development server:**
+   ```bash
+   uvicorn main:app --reload
+   ```
+   - Root Health Check: `http://127.0.0.1:8000/health`
+   - API V1 Base Path: `http://127.0.0.1:8000/api/v1`
+   - Interactive Swagger Documentation: `http://127.0.0.1:8000/docs`
+   - ReDoc Documentation: `http://127.0.0.1:8000/redoc`
+
+
+## 11. Deployment and CI/CD
+
+### Architecture
+The application is containerized with Docker and hosted on a Virtual Private Server (VPS) managed through **Coolify** behind a Traefik reverse proxy with automated SSL.
+
+- **Container Engine:** Docker (`python:3.13-slim` base image)
+- **Startup Lifecycle (`entrypoint.sh`):**
+  1. Checks database connectivity and waits for PostgreSQL to become ready.
+  2. Executes `alembic upgrade head` to run schema migrations automatically.
+  3. Executes `python seed.py` to idempotently ensure baseline clinic data is present.
+  4. Starts Uvicorn serving on port `8000`.
+
+### CI/CD Pipeline (GitHub Actions)
+The automated workflow is defined in `.github/workflows/ci.yml`:
+
+- **Pull Request Automation:** Every Pull Request targeting `main` or `staging` automatically spins up a real `postgres:17-alpine` service container, runs database migrations, and executes all 30 automated tests (`pytest -v`). PR merges are blocked if any test fails.
+- **Designated Deployment Branch (`staging`):**
+  - When changes are merged into the `staging` branch, the `deploy` job triggers a deployment webhook to Coolify.
+  - Coolify pulls the latest code from `staging`, builds the Docker image, applies migrations, and auto-deploys the service with zero downtime.
+
+### Live Application URL
+- **Public Base URL:** [https://clinic-booking.wandera.online](https://clinic-booking.wandera.online)
+- **API V1 Base Path:** [https://clinic-booking.wandera.online/api/v1](https://clinic-booking.wandera.online/api/v1)
+- **Interactive OpenAPI Docs:** [https://clinic-booking.wandera.online/docs](https://clinic-booking.wandera.online/docs)
+- **Health Check Endpoint:** [https://clinic-booking.wandera.online/health](https://clinic-booking.wandera.online/health)
 
