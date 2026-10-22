@@ -13,6 +13,16 @@ class Settings(BaseSettings):
     
     # Database URL
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/acme_booking"
+
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def assemble_database_url(cls, v: str) -> str:
+        """Ensure connection string uses the postgresql+psycopg:// dialect prefix."""
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+psycopg://", 1)
+        elif v.startswith("postgresql://") and not v.startswith("postgresql+"):
+            return v.replace("postgresql://", "postgresql+psycopg://", 1)
+        return v
     
     # CORS
     BACKEND_CORS_ORIGINS: Union[List[str], str] = ["*"]
